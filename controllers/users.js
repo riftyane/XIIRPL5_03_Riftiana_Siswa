@@ -54,7 +54,9 @@ module.exports = {
       },
       update: async (req, res) => {
         try {
-            const users = await User.findByIdAndUpdate( req.body, {
+            const id = req.params.id;
+            const body = req.body;
+            const users = await User.findByIdAndUpdate( id, body, {
                 new: true,
                 runValidators: true
             })
@@ -66,7 +68,31 @@ module.exports = {
                 message: "Data berhasil diubah"
             })
         } catch (error) {
-            res.status(400).json({success: false})
+            if (error.name === 'MongoError' && error.code === 11000) {
+                const duplicateKey = Object.keys(error.keyValue)[0];
+                let errorMessage;
+                switch (duplicateKey) {
+                    case 'email':
+                        errorMessage = 'Email sudah digunakan oleh pengguna lain';
+                        break;
+                    case 'nis':
+                        errorMessage = 'NIS sudah digunakan oleh pengguna lain';
+                        break;
+                    case 'nama':
+                        errorMessage = 'Nama sudah digunakan oleh pengguna lain';
+                        break;
+                    default:
+                        errorMessage = 'Error! Ga tau error apa wkwkw';
+                }
+    
+                res.status(400).json({
+                    success: false,
+                    message: errorMessage,
+                });
+            } else {
+                console.log(error);
+                res.status(400).json({ success: false });
+            }
         }
        }, 
        delete: async (req, res) => {
@@ -79,7 +105,8 @@ module.exports = {
                 message: "Data berhasil dihapus"
             })
         }catch (error){
-            res.status(400).json({sucsess: false})
+            console.log(error);
+            res.status(400).json({ success: false });
         }
     }
 }
